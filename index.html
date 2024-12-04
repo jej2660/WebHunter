@@ -1,13 +1,148 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta property="og:url" content="https://redkiwiapp.com" />
-<meta property="og:type" content="website" />
-<meta property="og:title" content="test<img>"/>
-<meta property="og:description" content="https://google.com<img>"/>
-<meta property="og:image" content="https://main--dulcet-alpaca-1e660b.netlify.app/evil.svg"/>
-  <title>Test Ttile</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rock Paper Scissors Game</title>
+  <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js"></script>
+  <script defer>
+    const contractAddress = "0x5a6efe5c947F06435D15685f5db561604a9B5727";
+    const contractABI = [
+      {
+        "name": "playGame",
+        "type": "function",
+        "inputs": [
+          {
+            "name": "choice",
+            "type": "uint8",
+            "internalType": "enum PvpFlip.RoundChoice"
+          }
+        ]
+      }
+    ];
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      if (typeof window.ethereum !== 'undefined') {
+        console.log('MetaMask is installed!');
+        
+        // Connect wallet
+        document.getElementById('connectWallet').addEventListener('click', async () => {
+          try {
+            await ethereum.request({ method: 'eth_requestAccounts' });
+            document.getElementById('walletAddress').textContent = `Wallet Connected: ${ethereum.selectedAddress}`;
+          } catch (error) {
+            console.error(error);
+          }
+        });
+
+        // Initialize web3
+        const web3 = new Web3(window.ethereum);
+        const contract = new web3.eth.Contract(contractABI, contractAddress);
+
+        // Game options
+        const choices = {
+          rock: 0,
+          paper: 1,
+          scissors: 2
+        };
+
+        // Play Game
+        document.querySelectorAll('.choice').forEach((element) => {
+          element.addEventListener('click', async () => {
+            const choice = choices[element.id];
+            try {
+              const accounts = await web3.eth.getAccounts();
+              const receipt = await contract.methods.playGame(choice).send({ from: accounts[0] });
+              console.log(receipt);
+              handleGameResult(receipt);
+            } catch (error) {
+              console.error(error);
+            }
+          });
+        });
+      } else {
+        alert('MetaMask is not installed. Please install it to use this feature.');
+      }
+    });
+
+    function handleGameResult(receipt) {
+      // Assuming the contract emits an event called 'GameResult' with outcome
+      const logs = receipt.events;
+      if (logs && logs.GameResult) {
+        const outcome = logs.GameResult.returnValues.outcome;
+        switch(outcome) {
+          case '0':
+            alert('Draw!');
+            break;
+          case '1':
+            alert('You Win!');
+            break;
+          case '2':
+            alert('You Lose!');
+            break;
+          default:
+            alert('Unknown result');
+        }
+      } else {
+        alert('No result found in transaction logs.');
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+
+    .container {
+      text-align: center;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-bottom: 20px;
+      cursor: pointer;
+    }
+
+    .game-options {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .choice {
+      width: 100px;
+      height: 100px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .choice:hover {
+      transform: scale(1.1);
+    }
+  </style>
 </head>
-  <body>
-    Test Body
-  </body>
+<body>
+  <div class="container">
+    <h1>Rock Paper Scissors Game</h1>
+    <button id="connectWallet">Connect Wallet</button>
+    <p id="walletAddress">Wallet Not Connected</p>
+
+    <div class="game-options">
+      <img id="rock" class="choice" src="https://health.chosun.com/site/data/img_dir/2019/12/10/2019121001214_0.jpg" alt="Rock">
+      <img id="paper" class="choice" src="https://img.freepik.com/free-psd/white-blank-paper-scroll_1409-3590.jpg" alt="Paper">
+      <img id="scissors" class="choice" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRtHc0n-uE6Vejyx05PNE-R8Eb66GjlsR848V-DIG2vMcktJhOYlnfEClBDn_KPBmTZ5do&usqp=CAU" alt="Scissors">
+    </div>
+  </div>
+</body>
 </html>
